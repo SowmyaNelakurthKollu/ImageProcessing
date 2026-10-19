@@ -110,7 +110,7 @@ if fid < 0, error('Project:WriteFailed', 'Cannot write results summary.'); end
 cleanup = onCleanup(@() fclose(fid));
 fprintf(fid, '%s', jsonencode(summary, 'PrettyPrint', true));
 disp(struct2table([summary.Baseline,summary.Final], 'AsArray',true));
-fprintf('Saved measured results. Next: exportDemo; then run the report builder.\n');
+fprintf('Saved measured results. Run exportDemo for annotated detection visualizations.\n');
 end
 
 function validateLabels(labels, config)

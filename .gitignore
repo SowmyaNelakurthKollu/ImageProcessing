@@ -5,3 +5,6 @@ __pycache__/
 *.asv
 Anchor_Images/
 raw/
+build_report.py
+requirements-report.txt
+tests/test_report.py
