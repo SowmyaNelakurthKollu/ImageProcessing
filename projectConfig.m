@@ -1,0 +1,23 @@
+function config = projectConfig()
+root = fileparts(mfilename('fullpath'));
+config.Root = root;
+config.AnchorFolder = fullfile(root, 'Anchor_Images');
+config.AnchorBoxes = fullfile(root, 'annotations', 'anchor_boxes.csv');
+config.LabelFile = fullfile(root, 'annotations', 'frames.csv');
+config.ResultsFolder = fullfile(root, 'results');
+config.Seed = 2026;
+config.MaxFramesPerSequence = 40;
+config.SplitBlockLength = 20;
+config.SplitGuardFrames = 2;
+config.MaxImageSide = 960;
+config.CandidateSide = 480;
+config.MaxCandidates = 20;
+config.MinimumRedPixels = 20;
+config.MatchRatio = 0.75;
+config.MinInliers = 6;
+config.MinInlierRatio = 0.35;
+config.MinAnchorCoverage = 0.02;
+config.MaxReprojectionError = 4;
+config.PrecisionTarget = 0.75;
+config.RecallTarget = 0.60;
+end
