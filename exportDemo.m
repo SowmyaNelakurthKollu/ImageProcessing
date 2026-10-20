@@ -11,7 +11,7 @@ writer.FrameRate = 3;
 open(writer);
 cleanup = onCleanup(@() close(writer));
 for k = selected'
-    image = imread(fullfile(config.Root,labels.Frame(k)));
+    image = imread(fullfile(config.LocalDataSave,labels.Frame(k)));
     originalSize = [size(image,1),size(image,2)];
     scale = min(1,config.MaxImageSide/max(originalSize));
     image = imresize(image,max(1,round(originalSize*scale)));

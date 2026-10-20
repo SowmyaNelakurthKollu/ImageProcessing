@@ -23,7 +23,7 @@ finalCandidates = cell(n,1);
 candidateRecall = false(n,1);
 details = cell(n,1);
 for k = 1:n
-    frame = imread(fullfile(config.Root, labels.Frame(k)));
+    frame = imread(fullfile(config.LocalDataSave, labels.Frame(k)));
     originalSize = [size(frame,1),size(frame,2)];
     scale = min(1, config.MaxImageSide/max(originalSize));
     frame = imresize(frame, max(1,round(originalSize*scale)));
@@ -36,6 +36,8 @@ for k = 1:n
     baseline.Seconds(k) = toc(timer) + proposalTime;
     timer = tic;
     f = recognizeTarget(frame, features, points, images, Inf, config, boxes);
+    disp(f.candidates(:, {'Candidate','Anchor','Matches','Inliers', ...
+        'InlierRatio','Coverage','Valid','Reason','Score'}))
     final.Seconds(k) = toc(timer) + proposalTime;
     baseline = storePrediction(baseline,k,b,ratio);
     final = storePrediction(final,k,f,ratio);
@@ -78,9 +80,11 @@ thresholds = zeros(1,2);
 for m = 1:2
     predictions = tables{m};
     validationScores = predictions.Score(validation & predictions.Valid);
+    validationScores = validationScores(isfinite(validationScores));
     grid = unique([0; validationScores; Inf]);
-    [sweep, threshold, feasible] = tuneThreshold(predictions(validation,:), ...
-        labels(validation,:), grid, config.PrecisionTarget, config.RecallTarget);
+    validRows = validation & isfinite(predictions.Score) & ismember(predictions.Valid,[0 1]);
+    [sweep, threshold, feasible] = tuneThreshold(predictions(validRows,:), ...
+        labels(validRows,:), grid, config.PrecisionTarget, config.RecallTarget);
     thresholds(m) = threshold;
     predictions.Detected = predictions.Valid & predictions.Score >= threshold;
     [metrics,outcomes] = evaluateDetection(predictions(evaluation,:), labels(evaluation,:));
@@ -135,9 +139,11 @@ for split = ["validation","evaluation"]
         error('Project:UnbalancedSplit', '%s must contain present and absent frames.', split);
     end
 end
+
 for k = 1:height(labels)
-    if ~isfile(fullfile(config.Root, labels.Frame(k)))
-        error('Project:MissingFrame', 'Missing frame: %s.', labels.Frame(k));
+    framePath = fullfile(config.LocalDataSave, labels.Frame(k));
+    if ~isfile(framePath)
+        error('Project:MissingFrame', 'Missing frame: %s.', framePath);
     end
 end
 end

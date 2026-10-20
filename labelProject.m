@@ -10,7 +10,7 @@ fig = figure('Name', 'Reference labels - not model predictions');
 cleanup = onCleanup(@() closeIfOpen(fig));
 for k = 1:height(labels)
     if labels.Reviewed(k), continue; end
-    image = imread(fullfile(config.Root, labels.Frame(k)));
+    image = imread(fullfile(fileparts(config.RawFolder), labels.Frame(k)));
     clf(fig);
     imshow(image);
     title(sprintf('%d/%d: REAL extinguisher? Printed replicas are absent.', ...

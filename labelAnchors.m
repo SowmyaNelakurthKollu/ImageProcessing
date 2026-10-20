@@ -29,3 +29,6 @@ end
 function closeIfOpen(fig)
 if isgraphics(fig), close(fig); end
 end
+
+%[appendix]{"version":"1.0"}
+%---

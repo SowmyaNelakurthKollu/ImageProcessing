@@ -2,6 +2,7 @@ function labels = prepareAnnotations(config)
 if nargin < 1
     config = projectConfig();
 end
+
 if isfile(config.LabelFile)
     error('Project:ExistingLabels', ...
         'Labels already exist at %s. Use labelProject to resume.', config.LabelFile);
@@ -9,7 +10,7 @@ end
 Frame = strings(0,1);
 Split = strings(0,1);
 for sequence = ["eval", "test"]
-    folder = fullfile(config.Root, 'raw', sequence, 'camera_color_image_raw');
+    folder = fullfile(config.RawFolder, sequence, 'camera_color_image_raw');
     files = dir(fullfile(folder, '*.png'));
     if isempty(files)
         error('Project:MissingFrames', 'No RGB PNG frames in %s.', folder);
