@@ -18,12 +18,18 @@ config.CandidateSide = 640;
 config.MaxCandidates = 20;
 config.MinimumRedPixels = 20;
 config.MatchRatio = 0.75;
-config.MinInliers = 4;
+config.MinInliers = 3;
 config.MinInlierRatio = 0.35;
 config.MinAnchorCoverage = 0.02;
 config.MaxReprojectionError = 4;
 config.PrecisionTarget = 0.55;
 config.RecallTarget = 0.50;
+config.AnchorBodyHeights = [250 180];
+config.AnchorPartHeights = [120 80];
+config.MinAnchorPoints   = 10;
+config.ContrastThreshold = 0.001;
+config.CandidateScale     = 1.5;
+config.EdgeThreshold = 20;
 end
 
 %[appendix]{"version":"1.0"}
