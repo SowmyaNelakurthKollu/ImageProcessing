@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 function [anchorImages, anchorFeatures, anchorValidPoints, anchorInfo] = setupAnchors(anchorFolder, config)
 if nargin < 2, config = projectConfig(); end
 if ~isfile(config.AnchorBoxes)
@@ -117,6 +116,4 @@ for i = 1:numAnchors
         i, validPoints.Count);
 
 end
-
->>>>>>> Stashed changes
 end
