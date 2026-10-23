@@ -132,7 +132,7 @@ for m = 1:2
     predictions.Detected = predictions.Valid & predictions.Score >= threshold;
 
     % Evaluation split.
-    [metrics,outcomes] = evaluateDetection(predictions(evaluation,:), labels(evaluation,:));
+    metrics = evaluateDetection(predictions(evaluation,:), labels(evaluation,:));
     metrics.Threshold = threshold;
     metrics.ValidationTargetsMet = feasible;
     metrics.EvaluationTargetsMet = metrics.Precision >= config.PrecisionTarget && ...
@@ -143,19 +143,17 @@ for m = 1:2
     summary.(methods{m}) = metrics;
     writetable(predictions, fullfile(config.ResultsFolder, [lower(methods{m}) '_predictions.csv']));
     writetable(sweep, fullfile(config.ResultsFolder, [lower(methods{m}) '_thresholds.csv']));
-    writetable(outcomes, fullfile(config.ResultsFolder, [lower(methods{m}) '_outcomes.csv']));
 
     % Test split: same threshold, scored once, never used for tuning.
     if any(test)
         if any(labels.TargetPresent(test) == 1) && any(labels.TargetPresent(test) == 0)
-            [mt, ot] = evaluateDetection(predictions(test,:), labels(test,:));
+            mt = evaluateDetection(predictions(test,:), labels(test,:));
             mt.Threshold = threshold;
             mt.MeanSecondsPerFrame = mean(predictions.Seconds(test));
             mt.AnchorWins = arrayfun(@(a) sum(predictions.BestAnchor(test) == a & ...
                 predictions.Valid(test)), 1:numel(images));
             summary.([methods{m} 'Test']) = mt;
-            writetable(ot, fullfile(config.ResultsFolder, [lower(methods{m}) '_test_outcomes.csv']));
-            testScored = true;
+           testScored = true;
         else
             warning('Project:TestUnbalanced', ...
                 'Test split lacks present or absent frames; test metrics skipped.');
