@@ -8,7 +8,7 @@ numFrames = length(frameFiles);
 
 Frame = strings(numFrames,1);
 
-TargetPresent = nan(numFrames,1);
+TargetPresent = false(numFrames,1);
 
 X = nan(numFrames,1);
 Y = nan(numFrames,1);
@@ -21,15 +21,13 @@ for k = 1:numFrames
 
 end
 
-Reviewed = false(numFrames,1);
 groundTruth = table( ...
     Frame, ...
     TargetPresent, ...
     X, ...
     Y, ...
     Width, ...
-    Height, ...
-    Reviewed);
+    Height);
 
 writetable(groundTruth,outputFile);
 

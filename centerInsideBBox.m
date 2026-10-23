@@ -7,8 +7,7 @@ function inside = centerInsideBBox(center,bbox)
 % center = [x y]
 % ==========================================================
 
-if numel(center) ~= 2 || numel(bbox) ~= 4 || ...
-        any(~isfinite(center)) || any(~isfinite(bbox)) || any(bbox(3:4) <= 0)
+if isempty(center) || isempty(bbox)
 
     inside = false;
     return;
