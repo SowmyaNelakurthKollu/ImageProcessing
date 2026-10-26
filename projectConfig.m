@@ -21,10 +21,10 @@ config.AnchorSide = 330;
 
 % Matching gates. Starting values from the slide-style discussion; tune on validation only.
 config.MatchRatio = 0.75;          % was 0.75
-config.MinInliers = 5;             % was 4
-config.MinInlierRatio = 0.3;        % was 0.35, then 0.15
+config.MinInliers = 3;             % similarity needs 2 points, so 3 is still a real check
+config.MinInlierRatio = 0.1;       % true support is only ~3-5 of ~20 matches at 640x400
 config.MinAnchorCoverage = 0.02;
-config.MaxReprojectionError = 4;
+config.MaxReprojectionError = 4;   % in frame pixels (scaled by the crop upsampling)
 
 % Replica rejection. A real-anchor candidate is dropped if a replica anchor
 % scores at least ReplicaMargin times the real score. Tune on validation only.

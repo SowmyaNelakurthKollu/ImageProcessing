@@ -50,7 +50,7 @@ for c = 1:size(boxes,1)
             % The status output reports expected RANSAC failures without hiding errors.
             [transform, inliers, status] = estimateGeometricTransform2D( ...
                 ap, fp, transformType, 'MaxNumTrials', 2000, ...
-                'Confidence', 99, 'MaxDistance', config.MaxReprojectionError);
+                'Confidence', 99, 'MaxDistance', config.MaxReprojectionError * cropScale);
             row.Reason = "RANSAC failed";
             if status == 0
                 row.Inliers = sum(inliers);
@@ -122,8 +122,10 @@ else
     result.candidates = sortrows(struct2table(rows), {'Valid','Score'}, {'descend','descend'});
 end
 
-
-
+% Keep the best rejected score for logging; targetPresent still requires valid.
+if ~result.valid && isfinite(bestAnyScore)
+    result.score = bestAnyScore;
+end
 result.targetPresent = result.valid && result.score >= threshold;
 end
 
