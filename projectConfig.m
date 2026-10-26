@@ -41,8 +41,14 @@ config.MaxShear = 0.3;
 config.MaxRotationDeg = 30;
 config.MaxSizeRatio = 2.5;
 
-% Localization: SIFT verifies, red-cylinder box localizes.
-config.UseColorBox = true;
+% Verification: 'matches' scores each red proposal by its number of SIFT
+% matches to the anchors; 'geometry' also requires a RANSAC similarity fit.
+config.Verification = 'matches';
+config.MinMatches = 2;
+
+% Localization box: 'proposal' (red cylinder + hose, same as the colour
+% baseline), 'red' (cylinder + ColorBoxHeadroom) or 'sift' (projected anchor).
+config.LocalizationBox = 'proposal';
 config.ColorBoxHeadroom = 0.35;
 
 % Evaluation: a detection must also overlap the reference box.
