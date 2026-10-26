@@ -36,8 +36,7 @@ for k = 1:n
     baseline.Seconds(k) = toc(timer) + proposalTime;
     timer = tic;
     f = recognizeTarget(frame, features, points, images, Inf, config, boxes);
-    disp(f.candidates(:, {'Candidate','Anchor','Matches','Inliers', ...
-        'InlierRatio','Coverage','Valid','Reason','Score'}))
+    %disp(f.candidates(:, {'Candidate','Anchor','Matches','Inliers', 'InlierRatio','Coverage','Valid','Reason','Score'}))
     final.Seconds(k) = toc(timer) + proposalTime;
     baseline = storePrediction(baseline,k,b,ratio);
     final = storePrediction(final,k,f,ratio);
