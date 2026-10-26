@@ -86,7 +86,7 @@ for m = 1:2
         labels(validRows,:), grid, config.PrecisionTarget, config.RecallTarget);
     thresholds(m) = threshold;
     predictions.Detected = predictions.Valid & predictions.Score >= threshold;
-    [metrics,outcomes] = evaluateDetection(predictions(evaluation,:), labels(evaluation,:));
+    [metrics,outcomes] = evaluateDetection(predictions(evaluation,:), labels(evaluation,:), config.MinIoU);
     metrics.Threshold = threshold;
     metrics.ValidationTargetsMet = feasible;
     metrics.EvaluationTargetsMet = metrics.Precision >= config.PrecisionTarget && ...
