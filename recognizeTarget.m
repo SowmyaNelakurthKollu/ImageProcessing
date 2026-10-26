@@ -18,7 +18,10 @@ result.polygon = [];
 result.anchorMatchPoints = [];
 result.frameMatchPoints = [];
 result.valid = false;
+result.siftBox = [];
+transformType = getOption(config, 'TransformType', 'projective');
 for c = 1:size(boxes,1)
+    colorBox = redObjectBox(frame, boxes(c,:), config);
     crop = imcrop(frame, boxes(c,:));
     cropScale = config.CandidateSide / max(size(crop,1),size(crop,2));
     cropSize = [size(crop,1),size(crop,2)];
@@ -46,7 +49,7 @@ for c = 1:size(boxes,1)
             fp = validPoints(pairs(:,2)).Location;
             % The status output reports expected RANSAC failures without hiding errors.
             [transform, inliers, status] = estimateGeometricTransform2D( ...
-                ap, fp, 'projective', 'MaxNumTrials', 2000, ...
+                ap, fp, transformType, 'MaxNumTrials', 2000, ...
                 'Confidence', 99, 'MaxDistance', config.MaxReprojectionError);
             row.Reason = "RANSAC failed";
             if status == 0
@@ -66,6 +69,9 @@ for c = 1:size(boxes,1)
                 projected = (projected - 0.5) ./ cropRatio + 0.5 + boxes(c,1:2) - 1;
 
                 [geometryOK, predictedBox, reason] = validProjection(projected, frame, boxes(c,:));
+                if geometryOK
+                    [geometryOK, reason] = plausibleTransform(transform, predictedBox, colorBox, config);
+                end
                 row.BBox = predictedBox;
                 row.Valid = geometryOK && row.Inliers >= config.MinInliers && ...
                     row.InlierRatio >= config.MinInlierRatio && ...
@@ -73,7 +79,7 @@ for c = 1:size(boxes,1)
 
                 failureReason = "geometric/support check failed";
                 if ~geometryOK
-                    failureReason = "invalid projection";
+                    failureReason = reason;
                 elseif row.Inliers < config.MinInliers
                     failureReason = "too few inliers";
                 elseif row.InlierRatio < config.MinInlierRatio
@@ -82,25 +88,23 @@ for c = 1:size(boxes,1)
                     failureReason = "low coverage";
                 end
 
-                row.Reason = reason;
+                row.Reason = failureReason;
                 if row.Valid
                     row.Reason = "valid";
-                    if result.valid
-                        result.score = bestValidScore;
-                    elseif isfinite(bestAnyScore)
-                        result.score = bestAnyScore;
-                    else
-                        result.score = 0;
-                    end
-                    if ~result.valid || row.Score > result.score
+                    if row.Score > bestValidScore
+                        bestValidScore = row.Score;
                         result.valid = true;
                         result.score = row.Score;
                         result.bestAnchor = a;
                         result.numMatches = row.Matches;
                         result.numInliers = row.Inliers;
                         result.inlierRatio = row.InlierRatio;
+                        result.siftBox = predictedBox;
                         result.bbox = predictedBox;
-                        result.center = predictedBox(1:2) + predictedBox(3:4)/2;
+                        if getOption(config, 'UseColorBox', false) && ~isempty(colorBox)
+                            result.bbox = colorBox;
+                        end
+                        result.center = result.bbox(1:2) + result.bbox(3:4)/2;
                         result.polygon = projected;
                         result.anchorMatchPoints = ap(inliers,:);
                         result.frameMatchPoints = (fp(inliers,:)-0.5)./cropRatio + ...
@@ -181,4 +185,77 @@ else
     valid = true;
     reason = "valid";
 end
+end
+
+
+function value = getOption(config, name, default)
+value = default;
+if isfield(config, name) && ~isempty(config.(name))
+    value = config.(name);
+end
+end
+
+
+function [ok, reason] = plausibleTransform(transform, predictedBox, colorBox, config)
+% With only a handful of matches RANSAC can fit a near-exact but degenerate
+% transform (thin sliver or collapsed box); reject those.
+ok = false;
+L = transform.T(1:2, 1:2);
+sx = norm(L(1,:));
+sy = norm(L(2,:));
+if ~all(isfinite(L), 'all') || det(L) <= 0
+    reason = "degenerate/reflected transform";
+    return;
+end
+if max(sx, sy) / max(min(sx, sy), eps) > getOption(config, 'MaxAnisotropy', Inf)
+    reason = "anisotropic scale";
+    return;
+end
+if abs(dot(L(1,:), L(2,:))) / (sx * sy) > getOption(config, 'MaxShear', Inf)
+    reason = "sheared transform";
+    return;
+end
+if abs(atan2d(L(1,2), L(1,1))) > getOption(config, 'MaxRotationDeg', 180)
+    reason = "rotated transform";
+    return;
+end
+maxRatio = getOption(config, 'MaxSizeRatio', Inf);
+if ~isempty(colorBox) && isfinite(maxRatio)
+    sizeRatio = predictedBox(4) / colorBox(4);
+    if sizeRatio > maxRatio || sizeRatio < 1 / maxRatio
+        reason = "size inconsistent with red object";
+        return;
+    end
+end
+ok = true;
+reason = "valid";
+end
+
+
+function box = redObjectBox(frame, proposal, config)
+% Tight box around the red cylinder inside the proposal, extended upward
+% for the valve. Same color rule as generateCandidates.
+box = [];
+x1 = max(1, floor(proposal(1)));
+y1 = max(1, floor(proposal(2)));
+x2 = min(size(frame,2), ceil(proposal(1) + proposal(3)));
+y2 = min(size(frame,1), ceil(proposal(2) + proposal(4)));
+if x2 <= x1 || y2 <= y1
+    return;
+end
+hsv = rgb2hsv(frame(y1:y2, x1:x2, :));
+mask = (hsv(:,:,1) < 0.065 | hsv(:,:,1) > 0.94) & ...
+    hsv(:,:,2) > 0.45 & hsv(:,:,3) > 0.12;
+mask = imclose(mask, strel('disk', 2, 0));
+mask = bwareaopen(mask, config.MinimumRedPixels);
+stats = regionprops(mask, 'BoundingBox', 'Area');
+if isempty(stats)
+    return;
+end
+[~, idx] = max([stats.Area]);
+b = stats(idx).BoundingBox;
+headroom = getOption(config, 'ColorBoxHeadroom', 0) * b(4);
+top = max(0.5, b(2) + y1 - 1 - headroom);
+bottom = b(2) + y1 - 1 + b(4);
+box = [b(1) + x1 - 1, top, b(3), bottom - top];
 end

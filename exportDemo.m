@@ -15,7 +15,7 @@ root = fullfile(config.ResultsFolder,'visualizations');
 outcomeFolder = strings(numel(selected),2);
 for m = 1:2
     predictions = experiment.tables{m};
-    [~, outcomes] = evaluateDetection(predictions(selected,:), labels(selected,:));
+    [~, outcomes] = evaluateDetection(predictions(selected,:), labels(selected,:), config.MinIoU);
     for j = 1:numel(selected)
         outcomeFolder(j,m) = outcomeName(outcomes, j);
     end
