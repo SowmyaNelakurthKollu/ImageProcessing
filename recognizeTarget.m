@@ -7,6 +7,9 @@ rows = struct('Candidate', {}, 'Anchor', {}, 'Score', {}, 'Matches', {}, ...
 
 bestAnyScore = -Inf;
 bestValidScore = -Inf;
+bestMatches = 0;
+matchCandidate = 0;
+matchAnchor = 0;
 result.score = 0;
 result.bestAnchor = 0;
 result.numMatches = 0;
@@ -44,6 +47,11 @@ for c = 1:size(boxes,1)
                 'Unique', true, 'MaxRatio', config.MatchRatio);
         end
         row.Matches = size(pairs,1);
+        if row.Matches > bestMatches
+            bestMatches = row.Matches;
+            matchCandidate = c;
+            matchAnchor = a;
+        end
         if row.Matches >= config.MinInliers
             ap = anchorValidPoints{a}(pairs(:,1)).Location;
             fp = validPoints(pairs(:,2)).Location;
@@ -100,10 +108,7 @@ for c = 1:size(boxes,1)
                         result.numInliers = row.Inliers;
                         result.inlierRatio = row.InlierRatio;
                         result.siftBox = predictedBox;
-                        result.bbox = predictedBox;
-                        if getOption(config, 'UseColorBox', false) && ~isempty(colorBox)
-                            result.bbox = colorBox;
-                        end
+                        result.bbox = localizationBox(boxes(c,:), colorBox, predictedBox, config);
                         result.center = result.bbox(1:2) + result.bbox(3:4)/2;
                         result.polygon = projected;
                         result.anchorMatchPoints = ap(inliers,:);
@@ -125,6 +130,22 @@ end
 % Keep the best rejected score for logging; targetPresent still requires valid.
 if ~result.valid && isfinite(bestAnyScore)
     result.score = bestAnyScore;
+end
+% At 640x400 the target gets too few consistent matches for a geometric fit,
+% but the number of descriptor matches still separates target from distractors.
+if strcmp(getOption(config, 'Verification', 'geometry'), 'matches')
+    result.valid = bestMatches > 0 && bestMatches >= getOption(config, 'MinMatches', 1);
+    result.score = bestMatches;
+    result.numMatches = bestMatches;
+    result.bestAnchor = 0;
+    result.bbox = [];
+    result.center = [];
+    if result.valid
+        proposal = boxes(matchCandidate,:);
+        result.bestAnchor = matchAnchor;
+        result.bbox = localizationBox(proposal, redObjectBox(frame, proposal, config), [], config);
+        result.center = result.bbox(1:2) + result.bbox(3:4)/2;
+    end
 end
 result.targetPresent = result.valid && result.score >= threshold;
 end
@@ -260,4 +281,23 @@ headroom = getOption(config, 'ColorBoxHeadroom', 0) * b(4);
 top = max(0.5, b(2) + y1 - 1 - headroom);
 bottom = b(2) + y1 - 1 + b(4);
 box = [b(1) + x1 - 1, top, b(3), bottom - top];
+end
+
+
+function box = localizationBox(proposal, colorBox, siftBox, config)
+default = 'sift';
+if getOption(config, 'UseColorBox', false)
+    default = 'red';
+end
+switch getOption(config, 'LocalizationBox', default)
+    case 'proposal'
+        box = proposal;
+    case 'red'
+        box = colorBox;
+    otherwise
+        box = siftBox;
+end
+if isempty(box)
+    box = proposal;
+end
 end
