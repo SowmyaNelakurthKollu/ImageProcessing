@@ -10,6 +10,12 @@ bestValidScore = -Inf;
 bestMatches = 0;
 matchCandidate = 0;
 matchAnchor = 0;
+matchGeometry = [];
+matchMode = strcmp(getOption(config, 'Verification', 'geometry'), 'matches');
+minPoints = config.MinInliers;
+if matchMode
+    minPoints = min(minPoints, max(1, getOption(config, 'MinMatches', 1)));
+end
 result.score = 0;
 result.bestAnchor = 0;
 result.numMatches = 0;
@@ -34,7 +40,7 @@ for c = 1:size(boxes,1)
     points = detectSIFTFeatures(im2gray(crop));
     features = [];
     validPoints = points;
-    if points.Count >= config.MinInliers
+    if points.Count >= minPoints
         [features, validPoints] = extractFeatures(im2gray(crop), points);
     end
     for a = 1:numel(anchorImages)
@@ -42,7 +48,7 @@ for c = 1:size(boxes,1)
             'Inliers', 0, 'InlierRatio', 0, 'Coverage', 0, 'Valid', false, ...
             'Reason', "insufficient matches", 'BBox', nan(1,4));
         pairs = zeros(0,2);
-        if validPoints.Count >= config.MinInliers
+        if validPoints.Count >= minPoints
             pairs = matchFeatures(anchorFeatures{a}, features, ...
                 'Unique', true, 'MaxRatio', config.MatchRatio);
         end
@@ -51,6 +57,7 @@ for c = 1:size(boxes,1)
             bestMatches = row.Matches;
             matchCandidate = c;
             matchAnchor = a;
+            matchGeometry = [];
         end
         if row.Matches >= config.MinInliers
             ap = anchorValidPoints{a}(pairs(:,1)).Location;
@@ -99,6 +106,12 @@ for c = 1:size(boxes,1)
                 row.Reason = failureReason;
                 if row.Valid
                     row.Reason = "valid";
+                    if c == matchCandidate && a == matchAnchor
+                        matchGeometry = struct('siftBox', predictedBox, 'polygon', projected, ...
+                            'numInliers', row.Inliers, 'inlierRatio', row.InlierRatio, ...
+                            'anchorMatchPoints', ap(inliers,:), ...
+                            'frameMatchPoints', (fp(inliers,:)-0.5)./cropRatio + 0.5 + boxes(c,1:2) - 1);
+                    end
                     if row.Score > bestValidScore
                         bestValidScore = row.Score;
                         result.valid = true;
@@ -133,17 +146,33 @@ if ~result.valid && isfinite(bestAnyScore)
 end
 % At 640x400 the target gets too few consistent matches for a geometric fit,
 % but the number of descriptor matches still separates target from distractors.
-if strcmp(getOption(config, 'Verification', 'geometry'), 'matches')
+if matchMode
     result.valid = bestMatches > 0 && bestMatches >= getOption(config, 'MinMatches', 1);
     result.score = bestMatches;
     result.numMatches = bestMatches;
     result.bestAnchor = 0;
     result.bbox = [];
     result.center = [];
+    % Geometry fields describe the match-count winner only (empty if its fit failed).
+    result.siftBox = [];
+    result.polygon = [];
+    result.numInliers = 0;
+    result.inlierRatio = 0;
+    result.anchorMatchPoints = [];
+    result.frameMatchPoints = [];
+    if ~isempty(matchGeometry)
+        result.siftBox = matchGeometry.siftBox;
+        result.polygon = matchGeometry.polygon;
+        result.numInliers = matchGeometry.numInliers;
+        result.inlierRatio = matchGeometry.inlierRatio;
+        result.anchorMatchPoints = matchGeometry.anchorMatchPoints;
+        result.frameMatchPoints = matchGeometry.frameMatchPoints;
+    end
     if result.valid
         proposal = boxes(matchCandidate,:);
         result.bestAnchor = matchAnchor;
-        result.bbox = localizationBox(proposal, redObjectBox(frame, proposal, config), [], config);
+        result.bbox = localizationBox(proposal, redObjectBox(frame, proposal, config), ...
+            result.siftBox, config);
         result.center = result.bbox(1:2) + result.bbox(3:4)/2;
     end
 end
