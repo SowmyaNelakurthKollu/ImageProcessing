@@ -136,6 +136,9 @@ for c = 1:size(boxes,1)
 end
 if isempty(rows)
     result.candidates = table();
+elseif matchMode
+    % Rank by the evidence the decision uses: SIFT matches to the anchors.
+    result.candidates = sortrows(struct2table(rows), {'Matches','Score'}, {'descend','descend'});
 else
     result.candidates = sortrows(struct2table(rows), {'Valid','Score'}, {'descend','descend'});
 end
