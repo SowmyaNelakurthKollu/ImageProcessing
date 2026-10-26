@@ -30,8 +30,8 @@ config.MaxReprojectionError = 4;   % in frame pixels (scaled by the crop upsampl
 % scores at least ReplicaMargin times the real score. Tune on validation only.
 config.ReplicaMargin = 0.8;
 
-config.PrecisionTarget = 0.55;
-config.RecallTarget = 0.50;
+config.PrecisionTarget = 0.75;   % assignment target
+config.RecallTarget = 0.60;      % assignment target
 config.MinBoxFraction = 0.1;
 
 % Geometry sanity checks for the SIFT transform (rejects sliver/collapsed boxes).
@@ -51,8 +51,8 @@ config.MinMatches = 2;
 config.LocalizationBox = 'proposal';
 config.ColorBoxHeadroom = 0.35;
 
-% Evaluation: a detection must also overlap the reference box.
-config.MinIoU = 0.3;
+% Evaluation. Set MinIoU > 0 to additionally require box overlap (stricter than the brief).
+config.MinIoU = 0;   % assignment rule: predicted center inside reference box; IoU is still reported as MeanIoU
 end
 
 %[appendix]{"version":"1.0"}
