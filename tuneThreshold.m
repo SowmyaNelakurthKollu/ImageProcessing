@@ -1,7 +1,6 @@
-function [thresholdResults, selectedThreshold, feasible] = tuneThreshold(predictions, groundTruth, thresholds, precisionTarget, recallTarget, allowPresentOnly)
+function [thresholdResults, selectedThreshold, feasible] = tuneThreshold(predictions, groundTruth, thresholds, precisionTarget, recallTarget)
 if nargin < 4, precisionTarget = 0.75; end
 if nargin < 5, recallTarget = 0.60; end
-if nargin < 6, allowPresentOnly = false; end
 if ~istable(predictions)
     error('Project:LocalizationRequired', ...
         'Pass predictions with Score, Valid, Frame and centers, not just presence scores.');
@@ -10,8 +9,7 @@ if ~all(ismember({'Score','Valid'}, predictions.Properties.VariableNames)) || ..
         any(~isfinite(predictions.Score)) || ~all(ismember(predictions.Valid,[0,1]))
     error('Project:InvalidScores', 'Finite Score and binary Valid columns are required.');
 end
-if ~any(groundTruth.TargetPresent == 1) || ...
-        (~allowPresentOnly && ~any(groundTruth.TargetPresent == 0))
+if ~any(groundTruth.TargetPresent == 1) || ~any(groundTruth.TargetPresent == 0)
     error('Project:UnbalancedValidation', 'Validation needs real targets AND target-absent negatives.');
 end
 thresholds = unique(thresholds(:));
