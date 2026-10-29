@@ -53,6 +53,7 @@ config = projectConfig();
 labelAnchors(config)
 prepareAnnotations(config)
 labelProject(config)
+makeEvalNegatives(config)
 ```
 
 Draw three tight whole-object anchor boxes, including the hose but excluding
@@ -84,14 +85,22 @@ tests, experiment and annotated visualization export.
 Use `Project.m`, **not** the legacy `Project.mlx`, which has old paths and
 incompatible prototype evaluation logic.
 
-The default manifest selects 40 frames per sequence, for 80 reviewed frames.
-It alternates 20-frame validation/evaluation blocks, excludes two frames on
+The default manifest labels only the `eval` sequence (`config.LabelSequences`),
+40 frames (`config.MaxFramesPerSequence`). It alternates 20-frame validation/evaluation blocks, excludes two frames on
 each side of a block boundary, then samples retained frames evenly.
 The source folders `eval` and `test` are **not** the split names.
 This within-sequence split gives both subsets access to the printed-replica
 portion, but does not provide independent-scene evaluation.
 
-Both subsets must contain positives and negatives. Freeze the manifest before
+The `eval` sequence has no target-absent frames. `makeEvalNegatives` crops,
+from every labelled eval frame, the side of the image that excludes the target
+box (plus a margin) and keeps the most red, so look-alike objects stay in view.
+Each crop is added as a reviewed target-absent frame in its source frame's
+split, under `derived\eval_negatives` in the data folder. It also drops rows
+from other sequences (backup `frames_before_eval_only.csv`) and can be re-run.
+With `config.AllowPresentOnlySplits = true`, a split without absent frames
+gives a warning instead of an error. Run unlabelled `test` frames with
+`predictTestSet`. Freeze the manifest before
 looking at predictions. For more frames, increase
 `config.MaxFramesPerSequence` before preparing a new manifest. Do not remove
 hard frames or tune parameters using held-out outcomes.

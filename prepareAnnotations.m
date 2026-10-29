@@ -9,7 +9,7 @@ if isfile(config.LabelFile)
 end
 Frame = strings(0,1);
 Split = strings(0,1);
-for sequence = ["eval", "test"]
+for sequence = string(config.LabelSequences)
     folder = fullfile(config.RawFolder, sequence, 'camera_color_image_raw');
     files = dir(fullfile(folder, '*.png'));
     if isempty(files)
