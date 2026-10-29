@@ -13,6 +13,13 @@ config.Seed = 2026;
 config.MaxFramesPerSequence = 40;
 config.SplitBlockLength = 20;
 config.SplitGuardFrames = 2;
+% Label only these raw sequences. The eval sequence has no target-absent
+% frames, so makeEvalNegatives adds crops of each frame that exclude the target.
+config.LabelSequences = "eval";
+config.NegativeFolder = fullfile('derived', 'eval_negatives');   % under LocalDataSave
+config.NegativeMargin = 0.25;    % gap beside the target box, as a fraction of its width
+config.NegativeMinWidth = 64;    % pixels
+config.AllowPresentOnlySplits = true;
 config.MaxImageSide = 1280;
 config.CandidateSide = 640;
 config.MaxCandidates = 20;

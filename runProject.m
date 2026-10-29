@@ -83,7 +83,8 @@ for m = 1:2
     grid = unique([0; validationScores; Inf]);
     validRows = validation & isfinite(predictions.Score) & ismember(predictions.Valid,[0 1]);
     [sweep, threshold, feasible] = tuneThreshold(predictions(validRows,:), ...
-        labels(validRows,:), grid, config.PrecisionTarget, config.RecallTarget);
+        labels(validRows,:), grid, config.PrecisionTarget, config.RecallTarget, ...
+        allowPresentOnly(config));
     thresholds(m) = threshold;
     predictions.Detected = predictions.Valid & predictions.Score >= threshold;
     [metrics,outcomes] = evaluateDetection(predictions(evaluation,:), labels(evaluation,:), config.MinIoU);
@@ -134,8 +135,15 @@ dummy = predictionTable(labels.Frame);
 evaluateDetection(dummy,labels);
 for split = ["validation","evaluation"]
     subset = labels.TargetPresent(labels.Split == split);
-    if ~any(subset == 1) || ~any(subset == 0)
-        error('Project:UnbalancedSplit', '%s must contain present and absent frames.', split);
+    if ~any(subset == 1)
+        error('Project:UnbalancedSplit', '%s must contain target-present frames.', split);
+    elseif ~any(subset == 0)
+        if ~allowPresentOnly(config)
+            error('Project:UnbalancedSplit', ['%s has no target-absent frames. Run ' ...
+                'makeEvalNegatives or set config.AllowPresentOnlySplits.'], split);
+        end
+        warning('Project:NoAbsentFrames', ['%s has no target-absent frames; false ' ...
+            'positives can only be mislocalized acceptances.'], split);
     end
 end
 
@@ -145,6 +153,10 @@ for k = 1:height(labels)
         error('Project:MissingFrame', 'Missing frame: %s.', framePath);
     end
 end
+end
+
+function allowed = allowPresentOnly(config)
+allowed = isfield(config,'AllowPresentOnlySplits') && config.AllowPresentOnlySplits;
 end
 
 function predictions = predictionTable(frames)
